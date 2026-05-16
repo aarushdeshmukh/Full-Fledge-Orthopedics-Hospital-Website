@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}Admin Login — Sonavane Hospital{% endblock %}
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-header">
+      <h2>Admin Panel</h2>
+      <p>Login to manage appointments and doctors</p>
+    </div>
+    <form method="POST">
+      <div class="form-group"><label>Username</label><input type="text" name="username" required placeholder="admin"></div>
+      <div class="form-group"><label>Password</label><input type="password" name="password" required placeholder="Password"></div>
+      <button type="submit" class="btn-primary" style="width:100%;margin-top:8px;">Login to Admin</button>
+    </form>
+    <p class="auth-link"><a href="{{ url_for('login') }}">Back to Patient Login</a></p>
+  </div>
+</div>
+{% endblock %}

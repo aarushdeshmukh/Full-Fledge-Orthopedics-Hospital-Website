@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block title %}Our Doctors — Sonavane Hospital{% endblock %}
+{% block content %}
+<div style="min-height:100vh;padding:100px 8% 80px;background:var(--off);">
+  <div class="section-hd reveal" style="margin-bottom:48px;">
+    <p class="section-kicker">Our Team</p>
+    <h1 class="section-h">Meet Our Specialists</h1>
+    <div class="section-rule"></div>
+  </div>
+  <div class="doctors-grid">
+    {% for d in doctors %}
+    <div class="doc-card reveal">
+      <div style="width:100%;height:220px;overflow:hidden;flex-shrink:0;">
+        <img src="{{ d.image_url }}" alt="{{ d.name }}"
+             style="width:100%;height:220px;object-fit:cover;object-position:top center;display:block;"
+             onerror="this.src='/static/images/placeholder.jpg'">
+      </div>
+      <div class="doc-body">
+        <h3 class="doc-name">{{ d.name }}</h3>
+        <p class="doc-spec">{{ d.specialization }}</p>
+        <div class="doc-detail">
+          <div>{{ d.qualification }}</div>
+          <div>{{ d.experience }} Experience</div>
+          <div style="margin-top:6px;padding:6px 10px;background:var(--blue-soft);border-radius:6px;font-size:0.72rem;color:var(--blue);">{{ d.available_days }}</div>
+          <div style="font-size:0.72rem;color:var(--text-3);margin-top:4px;">{{ d.timing }}</div>
+        </div>
+        <a href="{{ url_for('book') }}" class="btn-primary"
+           style="display:block;text-align:center;margin-top:16px;font-size:0.74rem;padding:10px;">
+          Book Appointment
+        </a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

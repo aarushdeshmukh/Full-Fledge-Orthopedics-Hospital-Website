@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}About Us — Sonavane Hospital{% endblock %}
+{% block content %}
+<div class="about-page">
+  <div class="section-header reveal" style="margin-bottom:56px;">
+    <p class="section-tag">Who We Are</p>
+    <h1 class="section-title">About Sonavane Hospital</h1>
+    <div class="section-line"></div>
+  </div>
+  <div class="about-grid">
+    <div class="about-img reveal">
+      <img src="/static/images/about.jpg" alt="Sonavane Hospital" onerror="this.src='/static/images/placeholder.jpg'">
+    </div>
+    <div class="about-text reveal">
+      <p class="section-tag" style="text-align:left;margin-bottom:8px;">Our Story</p>
+      <h2 style="font-family:var(--font-head);font-size:2rem;margin-bottom:20px;">Dedicated to Orthopedic Excellence</h2>
+      <p>Sonavane Hospital was established with one mission — to provide the highest quality orthopedic care to the people of Akola and surrounding regions. Over 15 years we have grown into a trusted centre of excellence for bone and joint treatment.</p>
+      <p>Our team of highly qualified orthopedic surgeons, combined with state-of-the-art infrastructure and a compassionate approach, ensures every patient receives the best possible treatment and care.</p>
+      <p>From complex joint replacements to emergency fracture care, Sonavane Hospital is equipped to handle all orthopedic needs under one roof.</p>
+      <div class="about-features">
+        <div class="about-feature"><div class="feat-dot"></div>NABH Accredited Hospital</div>
+        <div class="about-feature"><div class="feat-dot"></div>Modern Operation Theatres</div>
+        <div class="about-feature"><div class="feat-dot"></div>24/7 Emergency Services</div>
+        <div class="about-feature"><div class="feat-dot"></div>In-house Physiotherapy</div>
+        <div class="about-feature"><div class="feat-dot"></div>Digital Diagnostics</div>
+        <div class="about-feature"><div class="feat-dot"></div>Affordable Treatment</div>
+      </div>
+    </div>
+  </div>
+  <div style="text-align:center;margin-top:40px;" class="reveal">
+    <a href="{{ url_for('book') }}" class="btn-primary" style="margin-right:12px;">Book Appointment</a>
+    <a href="{{ url_for('doctors') }}" class="btn-outline">Our Doctors</a>
+  </div>
+</div>
+{% endblock %}

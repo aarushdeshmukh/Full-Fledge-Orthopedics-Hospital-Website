@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Sonavane Hospital{% endblock %}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="{{ url_for('index') }}" class="nav-logo">
+    <div class="logo-cross">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+    </div>
+    <div>
+      <div class="logo-name">Sonavane Hospital</div>
+      <div class="logo-sub">Orthopedic Centre</div>
+    </div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="{{ url_for('index') }}">Home</a></li>
+    <li><a href="{{ url_for('doctors') }}">Doctors</a></li>
+    <li><a href="{{ url_for('services') }}">Services</a></li>
+    <li><a href="{{ url_for('about') }}">About</a></li>
+    {% if session.get('user_id') %}
+      <li><a href="{{ url_for('my_appointments') }}">My Appointments</a></li>
+      <li><span class="nav-user">{{ session.user_name }}</span></li>
+      <li><a href="{{ url_for('logout') }}" style="color:var(--text-3);">Logout</a></li>
+      <li><a href="{{ url_for('book') }}" class="nav-btn">Book Now</a></li>
+    {% else %}
+      <li><a href="{{ url_for('login') }}" class="nav-btn">Login</a></li>
+    {% endif %}
+  </ul>
+  <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+</nav>
+
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <div class="flash-container">
+      {% for msg in messages %}<div class="flash-msg">{{ msg }}</div>{% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+{% block content %}{% endblock %}
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div>
+      <div style="display:flex;align-items:center;gap:9px;">
+        <div class="logo-cross" style="width:30px;height:30px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </div>
+        <div class="footer-brand-name" style="margin:0;">Sonavane Hospital</div>
+      </div>
+      <p class="footer-tagline" style="margin-top:8px;">Restoring Movement. Rebuilding Lives.</p>
+    </div>
+    <div class="footer-links">
+      <h4>Quick Links</h4>
+      <a href="{{ url_for('doctors') }}">Our Doctors</a>
+      <a href="{{ url_for('services') }}">Services</a>
+      <a href="{{ url_for('about') }}">About Us</a>
+      <a href="{{ url_for('book') }}">Book Appointment</a>
+    </div>
+    <div class="footer-contact">
+      <h4>Contact Us</h4>
+      <p>Sonavane Hospital, Akola</p>
+      <p>Booking: +91 95273 67362</p>
+      <p>Service: +91 84688 57781</p>
+      <p>Open: 9am — 8pm Daily</p>
+    </div>
+  </div>
+  <div class="footer-bottom"><p>2024 Sonavane Orthopedic Hospital. All rights reserved.</p></div>
+</footer>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

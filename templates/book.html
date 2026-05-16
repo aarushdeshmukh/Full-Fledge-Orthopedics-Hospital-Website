@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% block title %}Book Appointment — Sonavane Hospital{% endblock %}
+{% block content %}
+<div class="book-page">
+  <div class="section-header reveal" style="margin-bottom:48px;">
+    <p class="section-tag">Schedule a Visit</p>
+    <h1 class="section-title">Book an Appointment</h1>
+    <div class="section-line"></div>
+  </div>
+  <div class="book-layout">
+    <div class="book-form-wrap reveal">
+      <h2>Patient Details</h2>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Patient Name</label>
+          <input type="text" id="pName" value="{{ user.name if user else '' }}" placeholder="Full name">
+        </div>
+        <div class="form-group">
+          <label>Phone Number</label>
+          <input type="tel" id="pPhone" value="{{ user.phone if user and user.phone else '' }}" placeholder="+91 98765 43210">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Age</label>
+          <input type="number" id="pAge" value="{{ user.age if user and user.age else '' }}" placeholder="Age">
+        </div>
+        <div class="form-group">
+          <label>Gender</label>
+          <select id="pGender">
+            <option value="">Select</option>
+            <option value="Male" {% if user and user.gender=='Male' %}selected{% endif %}>Male</option>
+            <option value="Female" {% if user and user.gender=='Female' %}selected{% endif %}>Female</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Select Doctor</label>
+        <select id="pDoctor">
+          <option value="">Choose a doctor</option>
+          {% for d in doctors %}
+          <option value="{{ d.id }}">{{ d.name }} — {{ d.specialization }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Preferred Date</label>
+          <input type="date" id="pDate">
+        </div>
+        <div class="form-group">
+          <label>Time Slot</label>
+          <select id="pTime">
+            <option value="">Select time</option>
+            <option>9:00 AM</option>
+            <option>9:30 AM</option>
+            <option>10:00 AM</option>
+            <option>10:30 AM</option>
+            <option>11:00 AM</option>
+            <option>11:30 AM</option>
+            <option>12:00 PM</option>
+            <option>2:00 PM</option>
+            <option>2:30 PM</option>
+            <option>3:00 PM</option>
+            <option>3:30 PM</option>
+            <option>4:00 PM</option>
+            <option>4:30 PM</option>
+            <option>5:00 PM</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Problem / Symptoms</label>
+        <textarea id="pProblem" rows="3" placeholder="Describe your problem or symptoms..."></textarea>
+      </div>
+      <button class="btn-primary" style="width:100%;" onclick="bookAppointment()">Confirm Appointment</button>
+    </div>
+
+    <div class="book-info reveal">
+      <h3>Appointment Info</h3>
+      <div class="info-row"><div class="info-dot"></div><span>Bring your previous reports if any</span></div>
+      <div class="info-row"><div class="info-dot"></div><span>Arrive 10 minutes before your slot</span></div>
+      <div class="info-row"><div class="info-dot"></div><span>Carry a valid ID proof</span></div>
+      <div class="info-row"><div class="info-dot"></div><span>Emergency cases attended immediately</span></div>
+      <div style="margin-top:24px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.08);">
+        <h3 style="margin-bottom:14px;">Contact</h3>
+        <div class="info-row"><div class="info-dot"></div><span>+91 98765 43210</span></div>
+        <div class="info-row"><div class="info-dot"></div><span>Emergency: +91 90492 34667</span></div>
+        <div class="info-row"><div class="info-dot"></div><span>Open 9am - 8pm Daily</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="successModal">
+  <div class="modal-box">
+    <div class="check-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#00B4D8" stroke-width="2.5" width="28" height="28"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <h3>Appointment Booked!</h3>
+    <p>Your appointment has been successfully booked. We will confirm it shortly via phone.</p>
+    <a href="{{ url_for('my_appointments') }}" class="btn-primary">View My Appointments</a>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function bookAppointment() {
+  const name      = document.getElementById('pName').value.trim();
+  const phone     = document.getElementById('pPhone').value.trim();
+  const age       = document.getElementById('pAge').value;
+  const gender    = document.getElementById('pGender').value;
+  const doctor_id = document.getElementById('pDoctor').value;
+  const date      = document.getElementById('pDate').value;
+  const time_slot = document.getElementById('pTime').value;
+  const problem   = document.getElementById('pProblem').value.trim();
+
+  if (!name || !phone || !doctor_id || !date || !time_slot) {
+    alert('Please fill in all required fields.');
+    return;
+  }
+
+  try {
+    const res = await fetch('/book', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ patient_name:name, phone, age, gender, doctor_id, date, time_slot, problem })
+    });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('successModal').classList.add('active');
+    } else {
+      alert('Something went wrong. Please try again.');
+    }
+  } catch(e) {
+    alert('Error booking appointment. Please try again.');
+  }
+}
+</script>
+{% endblock %}

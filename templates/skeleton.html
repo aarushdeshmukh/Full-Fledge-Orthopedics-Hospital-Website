@@ -1,0 +1,509 @@
+{% extends 'base.html' %}
+{% block title %}3D Skeleton — Sonavane Hospital{% endblock %}
+{% block extra_css %}
+<style>
+body { background:#F0F4F8; }
+.sk-wrap { min-height:100vh; padding:70px 0 0; background:#F0F4F8; display:flex; flex-direction:column; }
+.sk-topbar { background:#fff; border-bottom:1px solid #E2EAF4; padding:14px 24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+.sk-topbar h1 { font-family:'Playfair Display',serif; font-size:1.3rem; color:#0B1F3A; }
+.sk-topbar p  { font-size:0.74rem; color:#8899AA; margin-top:2px; }
+.ctrl-row { display:flex; gap:8px; flex-wrap:wrap; }
+.ctrl-btn { background:#F4F7FF; border:1px solid #D0DCEF; color:#3A4A5A; font-size:0.72rem; padding:7px 16px; border-radius:6px; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.18s; white-space:nowrap; }
+.ctrl-btn:hover { background:#E0ECFF; border-color:#1E6FD9; color:#1E6FD9; }
+.ctrl-btn.active { background:#1E6FD9; border-color:#1E6FD9; color:#fff; }
+.sk-main { display:flex; flex:1; min-height:0; }
+.sk-sidebar { width:200px; background:#fff; border-right:1px solid #E2EAF4; overflow-y:auto; padding:14px 0; flex-shrink:0; }
+.sk-sidebar .grp { font-size:0.6rem; color:#00A8C8; letter-spacing:0.18em; text-transform:uppercase; padding:10px 16px 4px; }
+.sk-sidebar .bbone { display:block; width:100%; text-align:left; background:none; border:none; color:#5A6A7A; font-size:0.74rem; padding:5px 16px; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.15s; border-left:2px solid transparent; }
+.sk-sidebar .bbone:hover { background:#F0F6FF; color:#1E6FD9; border-left-color:#1E6FD9; }
+.sk-sidebar .bbone.sel { background:#EEF4FF; color:#1E6FD9; font-weight:500; border-left-color:#1E6FD9; }
+#threeCanvas { flex:1; display:block; cursor:grab; }
+#threeCanvas:active { cursor:grabbing; }
+.sk-info { width:280px; background:#fff; border-left:1px solid #E2EAF4; overflow-y:auto; padding:20px; flex-shrink:0; }
+.info-kicker { font-size:0.6rem; color:#00A8C8; letter-spacing:0.2em; text-transform:uppercase; margin-bottom:8px; }
+.info-name  { font-family:'Playfair Display',serif; font-size:1.4rem; color:#0B1F3A; margin-bottom:3px; }
+.info-latin { font-size:0.72rem; color:#8899AA; font-style:italic; margin-bottom:14px; }
+.info-desc  { font-size:0.78rem; color:#4A5A6A; line-height:1.8; margin-bottom:14px; }
+.meta-grid  { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
+.meta-cell  { background:#F4F8FF; border-radius:7px; padding:10px; }
+.meta-lbl   { font-size:0.58rem; color:#8899AA; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:3px; }
+.meta-val   { font-size:0.84rem; color:#0B1F3A; font-weight:500; }
+.cond-box   { background:#FFF5F5; border:1px solid #FFD0D0; border-radius:7px; padding:11px; margin-bottom:9px; }
+.cond-lbl   { font-size:0.58rem; color:#E53935; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:5px; }
+.cond-txt   { font-size:0.74rem; color:#5A3A3A; line-height:1.6; }
+.treat-box  { background:#F0F9FF; border:1px solid #BAE0F5; border-radius:7px; padding:11px; }
+.treat-lbl  { font-size:0.58rem; color:#1E6FD9; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:5px; }
+.treat-txt  { font-size:0.74rem; color:#1A3A5A; line-height:1.6; }
+.default-info { text-align:center; padding:20px 0; }
+.default-info h3 { font-family:'Playfair Display',serif; font-size:1.1rem; color:#0B1F3A; margin-bottom:8px; }
+.default-info p { font-size:0.76rem; color:#8899AA; line-height:1.7; }
+.bone-count { font-family:'Playfair Display',serif; font-size:2.8rem; color:#1E6FD9; margin:16px 0 4px; }
+.clear-btn { width:100%; background:none; border:1px solid #D0DCEF; color:#8899AA; padding:8px; border-radius:6px; cursor:pointer; font-size:0.72rem; font-family:'DM Sans',sans-serif; margin-top:12px; transition:all 0.18s; }
+.clear-btn:hover { border-color:#1E6FD9; color:#1E6FD9; }
+.tooltip3d { position:fixed; background:rgba(11,31,58,0.92); color:#fff; padding:5px 12px; border-radius:6px; font-size:0.72rem; pointer-events:none; display:none; z-index:9999; }
+@media(max-width:900px){ .sk-sidebar{display:none;} .sk-info{width:220px;} }
+@media(max-width:640px){ .sk-info{display:none;} }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="sk-wrap">
+  <div class="sk-topbar">
+    <div>
+      <h1>3D Human Skeleton</h1>
+      <p>Drag to rotate &bull; Scroll to zoom &bull; Click any bone for details</p>
+    </div>
+    <div class="ctrl-row">
+      <button class="ctrl-btn" onclick="autoRotate()">Auto Rotate</button>
+      <button class="ctrl-btn" onclick="stopRotate()">Stop</button>
+      <button class="ctrl-btn" onclick="resetCam()">Reset View</button>
+      <button class="ctrl-btn" onclick="toggleLight()">Toggle Light</button>
+      <button class="ctrl-btn" onclick="zoomIn()">Zoom In</button>
+      <button class="ctrl-btn" onclick="zoomOut()">Zoom Out</button>
+    </div>
+  </div>
+  <div class="sk-main">
+    <div class="sk-sidebar" id="sidebar"></div>
+    <canvas id="threeCanvas"></canvas>
+    <div class="sk-info" id="infoPanel">
+      <div class="default-info" id="defaultInfo">
+        <h3>Select a Bone</h3>
+        <p>Click any bone in the 3D model to view detailed medical information about it.</p>
+        <div class="bone-count">206</div>
+        <p>bones in the adult human body</p>
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid #E2EAF4;font-size:0.72rem;color:#8899AA;">
+          <p style="margin-bottom:6px;">Drag to rotate 360°</p>
+          <p style="margin-bottom:6px;">Scroll to zoom</p>
+          <p>Click any bone for details</p>
+        </div>
+      </div>
+      <div id="boneInfo" style="display:none;">
+        <p class="info-kicker" id="iGrp"></p>
+        <p class="info-name"  id="iName"></p>
+        <p class="info-latin" id="iLat"></p>
+        <p class="info-desc"  id="iDesc"></p>
+        <div class="meta-grid">
+          <div class="meta-cell"><div class="meta-lbl">Count</div><div class="meta-val" id="iCnt"></div></div>
+          <div class="meta-cell"><div class="meta-lbl">Type</div><div class="meta-val"  id="iTyp"></div></div>
+        </div>
+        <div class="cond-box"><div class="cond-lbl">Common Conditions</div><div class="cond-txt" id="iCond"></div></div>
+        <div class="treat-box"><div class="treat-lbl">Treatment at Sonavane</div><div class="treat-txt" id="iTreat"></div></div>
+        <button class="clear-btn" onclick="clearSel()">Clear Selection</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="tooltip3d" id="tip3d"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const BD = {
+  skull:      {n:'Skull',g:'Skull',lat:'Cranium',c:'22',t:'Flat',d:'The skull encases and protects the brain. Composed of 22 bones — the cranium and facial bones — fused together at sutures.',cond:'Skull fractures, Cranial nerve compression, Temporal arteritis',treat:'Emergency trauma care, Cranial decompression, Neurological consultation'},
+  mandible:   {n:'Mandible',g:'Skull',lat:'Mandibula',c:'1',t:'Irregular',d:'The lower jawbone — only movable bone of the skull. Allows chewing and speech. Holds the lower teeth.',cond:'TMJ disorders, Mandibular fractures, Condylar fractures',treat:'Jaw fixation, TMJ arthroscopy, ORIF'},
+  cervical:   {n:'Cervical Vertebrae',g:'Spine',lat:'Vertebrae cervicales',c:'7',t:'Irregular',d:'Seven vertebrae forming the neck. C1 (atlas) and C2 (axis) allow head nodding and rotation. C5-C6 most commonly affected by disc disease.',cond:'Disc herniation, Whiplash, Cervical myelopathy',treat:'Anterior cervical discectomy, Cervical laminoplasty, Halo fixation'},
+  thoracic:   {n:'Thoracic Vertebrae',g:'Spine',lat:'Vertebrae thoracicae',c:'12',t:'Irregular',d:'Twelve vertebrae forming the mid-spine. Each articulates with a pair of ribs. More stable than cervical or lumbar.',cond:'Compression fractures, Disc herniation, Scheuermann disease',treat:'Vertebroplasty, Kyphoplasty, Posterior spinal fusion'},
+  lumbar:     {n:'Lumbar Vertebrae',g:'Spine',lat:'Vertebrae lumbales',c:'5',t:'Irregular',d:'Largest vertebrae bearing maximum body weight. L4-L5 and L5-S1 are the most common sites of disc problems and nerve compression.',cond:'Disc herniation, Spondylolisthesis, Lumbar stenosis',treat:'Microdiscectomy, Spinal fusion, Laminectomy'},
+  sacrum:     {n:'Sacrum',g:'Pelvis',lat:'Os sacrum',c:'1',t:'Irregular',d:'Triangular bone formed by 5 fused vertebrae. Forms the posterior wall of the pelvis and articulates with the ilium at the sacroiliac joints.',cond:'Sacral fractures, SI joint dysfunction, Sacral agenesis',treat:'Sacral screw fixation, SI joint injection, Pelvic ring stabilization'},
+  clavicle:   {n:'Clavicle',g:'Shoulder',lat:'Clavicula',c:'2',t:'Long',d:'The collarbone — most commonly fractured bone in the body. Connects sternum to scapula and acts as a strut for shoulder movement.',cond:'Fractures, Acromioclavicular injuries, Sternoclavicular dislocation',treat:'Plate fixation, Conservative management, Intramedullary nailing'},
+  scapula:    {n:'Scapula',g:'Shoulder',lat:'Scapula',c:'2',t:'Flat',d:'The shoulder blade provides attachment for rotator cuff muscles and connects the humerus with the clavicle.',cond:'Fractures, Rotator cuff tears, Winging of scapula',treat:'Physiotherapy, Rotator cuff repair, Surgical stabilization'},
+  sternum:    {n:'Sternum',g:'Thorax',lat:'Sternum',c:'1',t:'Flat',d:'The breastbone at the centre of the chest. Connects the ribs via costal cartilage and protects the heart and lungs.',cond:'Sternal fractures, Costochondritis, Sternoclavicular arthritis',treat:'Conservative management, Sternal fixation, Anti-inflammatory therapy'},
+  ribs:       {n:'Ribs',g:'Thorax',lat:'Costae',c:'24',t:'Flat',d:'12 pairs of ribs forming the ribcage. Upper 7 are true ribs, next 3 are false ribs, and the last 2 are floating ribs.',cond:'Rib fractures, Flail chest, Costochondral separation',treat:'Conservative management, Nerve blocks, Surgical fixation for flail chest'},
+  humerus:    {n:'Humerus',g:'Arm',lat:'Humerus',c:'2',t:'Long',d:'Upper arm bone from shoulder to elbow. The humeral head articulates with the glenoid forming the shoulder joint. Most mobile joint in the body.',cond:'Proximal fractures, Shaft fractures, Supracondylar fractures',treat:'ORIF, Shoulder arthroplasty, Intramedullary nailing'},
+  radius:     {n:'Radius',g:'Forearm',lat:'Radius',c:'2',t:'Long',d:"Lateral forearm bone on the thumb side. Larger at the wrist. Colles' fracture (wrist fall) is the most common forearm fracture.",cond:"Colles' fracture, Smith fracture, Radial head fracture",treat:'Plaster cast, ORIF with plate, Radial head replacement'},
+  ulna:       {n:'Ulna',g:'Forearm',lat:'Ulna',c:'2',t:'Long',d:'Medial forearm bone. The olecranon forms the tip of the elbow and articulates with the humerus at the trochlea.',cond:'Olecranon fractures, Nightstick fractures, Monteggia fractures',treat:'Tension band wiring, Plate fixation, Conservative management'},
+  carpals:    {n:'Carpal Bones',g:'Hand',lat:'Ossa carpi',c:'16',t:'Short',d:'8 carpal bones per wrist in 2 rows. Scaphoid is the most commonly fractured carpal, often missed on X-ray.',cond:'Scaphoid fractures, Lunate dislocation, Carpal tunnel syndrome',treat:'Screw fixation, Wrist arthroscopy, Carpal tunnel release'},
+  metacarpals:{n:'Metacarpals',g:'Hand',lat:'Ossa metacarpi',c:'10',t:'Long',d:'5 metacarpal bones per hand forming the palm. The 5th metacarpal is commonly fractured in fist injuries.',cond:"Bennett's fracture, Boxer's fracture, Rolando fracture",treat:'K-wire fixation, Plate fixation, Conservative splinting'},
+  phal_hand:  {n:'Finger Phalanges',g:'Hand',lat:'Phalanges manus',c:'28',t:'Long',d:'3 phalanges per finger (proximal, middle, distal) and 2 per thumb. Provide the bony framework of the fingers.',cond:'Fractures, Mallet finger, Jersey finger',treat:'Splinting, K-wire fixation, Tendon repair'},
+  pelvis:     {n:'Pelvis',g:'Pelvis',lat:'Os coxae',c:'2',t:'Flat',d:'Each hip bone consists of ilium, ischium and pubis fused together. The acetabulum forms the hip socket.',cond:'Pelvic fractures, Hip dysplasia, Acetabular fractures',treat:'External fixation, ORIF, Total hip replacement'},
+  femur:      {n:'Femur',g:'Leg',lat:'Femur',c:'2',t:'Long',d:'Longest and strongest bone in the body. The femoral neck is a common fracture site in elderly osteoporotic patients.',cond:'Neck fractures, Shaft fractures, Distal femur fractures',treat:'Dynamic hip screw, IM nailing, Total knee replacement'},
+  patella:    {n:'Patella',g:'Leg',lat:'Patella',c:'2',t:'Sesamoid',d:'Largest sesamoid bone in the body. Sits in the quadriceps tendon and protects the knee joint while improving muscle leverage.',cond:'Fractures, Patellofemoral syndrome, Dislocation',treat:'Tension band wiring, Patellectomy, Trochleoplasty'},
+  tibia:      {n:'Tibia',g:'Leg',lat:'Tibia',c:'2',t:'Long',d:'The shinbone — larger lower leg bone bearing most body weight. The tibial plateau forms the lower surface of the knee joint.',cond:'Tibial plateau fractures, Shaft fractures, Stress fractures',treat:'ORIF, Intramedullary nailing, Circular fixation'},
+  fibula:     {n:'Fibula',g:'Leg',lat:'Fibula',c:'2',t:'Long',d:'Slender lateral lower leg bone. Provides stability to the ankle and attachment for muscles but bears minimal weight.',cond:'Ankle fractures, Fibula fractures, Peroneal nerve palsy',treat:'ORIF, Conservative casting, Syndesmotic screw fixation'},
+  tarsals:    {n:'Tarsal Bones',g:'Foot',lat:'Ossa tarsi',c:'14',t:'Short',d:'7 tarsal bones per foot: calcaneus (heel), talus, navicular, cuboid and 3 cuneiforms. Calcaneus is most commonly fractured.',cond:'Calcaneus fractures, Lisfranc injuries, Pes planus',treat:'ORIF calcaneus, Lisfranc fusion, Hindfoot arthrodesis'},
+  metatarsals:{n:'Metatarsals',g:'Foot',lat:'Ossa metatarsi',c:'10',t:'Long',d:'5 metatarsals per foot connecting ankle to toes. 5th metatarsal base fracture (Jones fracture) common in ankle sprains.',cond:'Jones fracture, Stress fractures, Metatarsalgia',treat:'Screw fixation, Conservative management, Metatarsal osteotomy'},
+  phal_foot:  {n:'Toe Phalanges',g:'Foot',lat:'Phalanges pedis',c:'28',t:'Long',d:'3 phalanges per toe except great toe which has 2. Crucial for push-off during walking and running.',cond:'Toe fractures, Hallux valgus, Hammer toe',treat:'Buddy strapping, Osteotomy, Arthroplasty'},
+};
+
+const GROUPS={Skull:['skull','mandible'],Spine:['cervical','thoracic','lumbar','sacrum'],Shoulder:['clavicle','scapula'],Thorax:['sternum','ribs'],Arm:['humerus'],Forearm:['radius','ulna'],Hand:['carpals','metacarpals','phal_hand'],Pelvis:['pelvis'],Leg:['femur','patella','tibia','fibula'],Foot:['tarsals','metatarsals','phal_foot']};
+
+// Build sidebar
+const sb = document.getElementById('sidebar');
+Object.entries(GROUPS).forEach(([g,ids])=>{
+  const lbl=document.createElement('div'); lbl.className='grp'; lbl.textContent=g; sb.appendChild(lbl);
+  ids.forEach(id=>{
+    const b=document.createElement('button'); b.className='bbone'; b.id='sb_'+id;
+    b.textContent=BD[id].n; b.onclick=()=>selectBone(id); sb.appendChild(b);
+  });
+});
+
+// ── THREE.JS SETUP ──────────────────────────────────────────────────────────
+const canvas = document.getElementById('threeCanvas');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xF0F4F8);
+scene.fog = new THREE.Fog(0xF0F4F8, 40, 120);
+
+const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 200);
+camera.position.set(0, 0, 18);
+
+// Lights
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+scene.add(ambientLight);
+
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+dirLight.position.set(5, 10, 8);
+dirLight.castShadow = true;
+scene.add(dirLight);
+
+const fillLight = new THREE.DirectionalLight(0xC8E0FF, 0.4);
+fillLight.position.set(-5, 2, -5);
+scene.add(fillLight);
+
+const rimLight = new THREE.DirectionalLight(0xFFFFFF, 0.25);
+rimLight.position.set(0, -8, -6);
+scene.add(rimLight);
+
+// Materials
+const boneMat = new THREE.MeshPhongMaterial({
+  color: 0xF0E8D0, specular: 0xAAAA88, shininess: 60,
+  emissive: 0x111000
+});
+const hoverMat = new THREE.MeshPhongMaterial({
+  color: 0x4AA0F8, specular: 0x88BBFF, shininess: 80,
+  emissive: 0x001133
+});
+const selMat = new THREE.MeshPhongMaterial({
+  color: 0x1E6FD9, specular: 0x88CCFF, shininess: 100,
+  emissive: 0x002255
+});
+
+// Skeleton group
+const skeleton = new THREE.Group();
+scene.add(skeleton);
+
+// Helper to create bone meshes
+function addBone(id, geo, x, y, z, rx=0, ry=0, rz=0, sx=1, sy=1, sz=1) {
+  const mesh = new THREE.Mesh(geo, boneMat.clone());
+  mesh.position.set(x, y, z);
+  mesh.rotation.set(rx, ry, rz);
+  mesh.scale.set(sx, sy, sz);
+  mesh.castShadow = true;
+  mesh.userData.boneId = id;
+  skeleton.add(mesh);
+  return mesh;
+}
+
+const meshes = [];
+
+function mkMesh(id, geo, x, y, z, rx=0, ry=0, rz=0, sx=1, sy=1, sz=1) {
+  const m = addBone(id, geo, x, y, z, rx, ry, rz, sx, sy, sz);
+  meshes.push(m);
+  return m;
+}
+
+// Geometries reused
+const sphG  = new THREE.SphereGeometry(1, 16, 12);
+const cylG  = new THREE.CylinderGeometry(1, 1, 1, 14, 1);
+const boxG  = new THREE.BoxGeometry(1, 1, 1);
+const toroG = new THREE.TorusGeometry(1, 0.3, 10, 24);
+
+// ── SKULL ──────────────────────────────────────────────────────────────────
+mkMesh('skull', sphG,    0, 8.4, 0,  0,0,0, 1.05,1.1,0.95);     // cranium
+mkMesh('skull', sphG,    0, 7.8, 0.3, 0,0,0, 0.9,0.6,0.8);      // face
+mkMesh('mandible', boxG, 0, 6.9, 0.2, 0.15,0,0, 0.9,0.35,0.65); // jaw
+
+// ── CERVICAL SPINE ─────────────────────────────────────────────────────────
+for(let i=0;i<7;i++){
+  mkMesh('cervical', cylG, 0, 6.1-i*0.42, 0, 0,0,0, 0.4,0.35,0.38);
+  // transverse processes
+  mkMesh('cervical', boxG, -0.5, 6.1-i*0.42, 0, 0,0,0, 0.35,0.18,0.22);
+  mkMesh('cervical', boxG,  0.5, 6.1-i*0.42, 0, 0,0,0, 0.35,0.18,0.22);
+}
+
+// ── THORACIC SPINE ─────────────────────────────────────────────────────────
+for(let i=0;i<12;i++){
+  mkMesh('thoracic', cylG, 0, 3.2-i*0.44, 0, 0,0,0, 0.42,0.36,0.4);
+  mkMesh('thoracic', boxG, -0.55, 3.2-i*0.44, 0, 0,0,0, 0.38,0.18,0.26);
+  mkMesh('thoracic', boxG,  0.55, 3.2-i*0.44, 0, 0,0,0, 0.38,0.18,0.26);
+}
+
+// ── LUMBAR SPINE ───────────────────────────────────────────────────────────
+for(let i=0;i<5;i++){
+  mkMesh('lumbar', cylG, 0, -2.1-i*0.52, 0, 0,0,0, 0.56,0.42,0.5);
+  mkMesh('lumbar', boxG, -0.72, -2.1-i*0.52, 0, 0,0,0, 0.45,0.24,0.32);
+  mkMesh('lumbar', boxG,  0.72, -2.1-i*0.52, 0, 0,0,0, 0.45,0.24,0.32);
+}
+
+// ── SACRUM ─────────────────────────────────────────────────────────────────
+mkMesh('sacrum', cylG, 0, -4.8, 0.1, 0.2,0,0, 0.8,1.0,0.6);
+
+// ── CLAVICLES ──────────────────────────────────────────────────────────────
+mkMesh('clavicle', cylG, -1.4, 4.3, 0.2, 0,0, 0.32, 2.0,0.22,0.22);
+mkMesh('clavicle', cylG,  1.4, 4.3, 0.2, 0,0,-0.32, 2.0,0.22,0.22);
+
+// ── STERNUM ────────────────────────────────────────────────────────────────
+mkMesh('sternum', boxG, 0, 2.2, 0.55, 0,0,0, 0.5,2.8,0.22);
+
+// ── SCAPULAS ───────────────────────────────────────────────────────────────
+mkMesh('scapula', boxG, -1.9, 2.5,-0.6, 0,0, 0.1, 1.1,1.4,0.14);
+mkMesh('scapula', boxG,  1.9, 2.5,-0.6, 0,0,-0.1, 1.1,1.4,0.14);
+
+// ── RIBS ───────────────────────────────────────────────────────────────────
+for(let i=0;i<12;i++){
+  const y = 3.0 - i*0.42;
+  const scale = i<7 ? 1 : 0.85-i*0.03;
+  // Left rib
+  const rl = new THREE.TorusGeometry(1.5*scale, 0.13, 8, 20, Math.PI*0.7);
+  mkMesh('ribs', rl, -1.0, y, -0.1, -0.1, 0.05,-0.6);
+  // Right rib
+  const rr = new THREE.TorusGeometry(1.5*scale, 0.13, 8, 20, Math.PI*0.7);
+  mkMesh('ribs', rr,  1.0, y, -0.1, -0.1,-0.05, 0.6);
+}
+
+// ── HUMERUS ────────────────────────────────────────────────────────────────
+// Left
+mkMesh('humerus', sphG, -2.3, 3.7, 0, 0,0,0, 0.38,0.38,0.38); // head
+mkMesh('humerus', cylG, -2.5, 2.5, 0, 0,0, 0.12, 0.32,2.2,0.3);
+mkMesh('humerus', boxG, -2.68,1.2, 0, 0,0, 0.12, 0.72,0.4,0.4); // condyle
+// Right
+mkMesh('humerus', sphG,  2.3, 3.7, 0, 0,0,0, 0.38,0.38,0.38);
+mkMesh('humerus', cylG,  2.5, 2.5, 0, 0,0,-0.12, 0.32,2.2,0.3);
+mkMesh('humerus', boxG,  2.68,1.2, 0, 0,0,-0.12, 0.72,0.4,0.4);
+
+// ── RADIUS ─────────────────────────────────────────────────────────────────
+mkMesh('radius', cylG, -2.35,0.3,0.1, 0,0, 0.08, 0.22,1.9,0.22);
+mkMesh('radius', cylG,  2.35,0.3,-0.1, 0,0,-0.08, 0.22,1.9,0.22);
+
+// ── ULNA ───────────────────────────────────────────────────────────────────
+mkMesh('ulna', cylG, -2.65,0.4,0, 0,0, 0.08, 0.19,2.0,0.2);
+mkMesh('ulna', boxG, -2.68,1.3,0.1, 0,0, 0.08, 0.28,0.4,0.3); // olecranon
+mkMesh('ulna', cylG,  2.65,0.4,0, 0,0,-0.08, 0.19,2.0,0.2);
+mkMesh('ulna', boxG,  2.68,1.3,-0.1, 0,0,-0.08, 0.28,0.4,0.3);
+
+// ── CARPALS ────────────────────────────────────────────────────────────────
+[-0.3,-0.1,0.1,0.3].forEach((x,i)=>{
+  mkMesh('carpals', sphG, -2.3+x*0.3,-0.75+i*0.04,0.1, 0,0,0, 0.14,0.14,0.12);
+  mkMesh('carpals', sphG, -2.3+x*0.3,-0.92,0.1,        0,0,0, 0.13,0.13,0.11);
+  mkMesh('carpals', sphG,  2.3+x*0.3,-0.75+i*0.04,-0.1, 0,0,0, 0.14,0.14,0.12);
+  mkMesh('carpals', sphG,  2.3+x*0.3,-0.92,-0.1,        0,0,0, 0.13,0.13,0.11);
+});
+
+// ── METACARPALS ────────────────────────────────────────────────────────────
+[-0.3,-0.15,0,0.15,0.3].forEach((x,i)=>{
+  mkMesh('metacarpals', cylG, -2.28+x,-1.24,0.08, 0,0,0, 0.1,0.42,0.1);
+  mkMesh('metacarpals', cylG,  2.28+x,-1.24,-0.08, 0,0,0, 0.1,0.42,0.1);
+});
+
+// ── FINGER PHALANGES ───────────────────────────────────────────────────────
+[-0.3,-0.15,0,0.15,0.3].forEach((x,i)=>{
+  const len = i===0?0.22:0.26;
+  mkMesh('phal_hand', cylG, -2.28+x,-1.66,0.07, 0,0,0, 0.08,len,0.08);
+  mkMesh('phal_hand', cylG, -2.28+x,-1.93,0.07, 0,0,0, 0.07,0.2,0.07);
+  if(i>0) mkMesh('phal_hand', cylG, -2.28+x,-2.15,0.07, 0,0,0, 0.06,0.18,0.06);
+  mkMesh('phal_hand', cylG,  2.28+x,-1.66,-0.07, 0,0,0, 0.08,len,0.08);
+  mkMesh('phal_hand', cylG,  2.28+x,-1.93,-0.07, 0,0,0, 0.07,0.2,0.07);
+  if(i>0) mkMesh('phal_hand', cylG,  2.28+x,-2.15,-0.07, 0,0,0, 0.06,0.18,0.06);
+});
+
+// ── PELVIS ─────────────────────────────────────────────────────────────────
+mkMesh('pelvis', boxG, 0,-5.7,0, 0.1,0,0, 2.4,0.7,1.1);        // iliac crest
+mkMesh('pelvis', sphG,-1.2,-6.1,0.4, 0,0,0, 0.55,0.55,0.5);    // left acetabulum
+mkMesh('pelvis', sphG, 1.2,-6.1,0.4, 0,0,0, 0.55,0.55,0.5);    // right
+mkMesh('pelvis', boxG, 0,-6.5,0.6, 0,0,0, 0.8,0.35,0.28);      // pubic symphysis
+
+// ── FEMUR ──────────────────────────────────────────────────────────────────
+// Left
+mkMesh('femur', sphG,  -1.2,-6.1,0.4, 0,0,0, 0.42,0.42,0.4);   // head
+mkMesh('femur', cylG,  -1.02,-6.5,0.2, 0.1,0,-0.12, 0.2,0.8,0.2); // neck
+mkMesh('femur', cylG,  -0.85,-8.2,0,  0,0,-0.06, 0.4,3.5,0.38); // shaft
+mkMesh('femur', boxG,  -0.88,-9.9,0,  0,0,-0.06, 0.85,0.5,0.6); // distal condyle
+// Right
+mkMesh('femur', sphG,   1.2,-6.1,0.4, 0,0,0, 0.42,0.42,0.4);
+mkMesh('femur', cylG,   1.02,-6.5,0.2, 0.1,0, 0.12, 0.2,0.8,0.2);
+mkMesh('femur', cylG,   0.85,-8.2,0,  0,0, 0.06, 0.4,3.5,0.38);
+mkMesh('femur', boxG,   0.88,-9.9,0,  0,0, 0.06, 0.85,0.5,0.6);
+
+// ── PATELLA ────────────────────────────────────────────────────────────────
+mkMesh('patella', sphG, -0.85,-10.1,0.45, 0,0,0, 0.28,0.28,0.18);
+mkMesh('patella', sphG,  0.85,-10.1,0.45, 0,0,0, 0.28,0.28,0.18);
+
+// ── TIBIA ──────────────────────────────────────────────────────────────────
+mkMesh('tibia', cylG, -0.82,-11.8,0, 0,0,-0.04, 0.38,3.6,0.35);
+mkMesh('tibia', boxG, -0.82,-10.3,0, 0,0,-0.04, 0.82,0.44,0.55); // plateau
+mkMesh('tibia', cylG,  0.82,-11.8,0, 0,0, 0.04, 0.38,3.6,0.35);
+mkMesh('tibia', boxG,  0.82,-10.3,0, 0,0, 0.04, 0.82,0.44,0.55);
+
+// ── FIBULA ─────────────────────────────────────────────────────────────────
+mkMesh('fibula', cylG, -1.26,-11.7,0, 0,0,-0.04, 0.14,3.4,0.14);
+mkMesh('fibula', cylG,  1.26,-11.7,0, 0,0, 0.04, 0.14,3.4,0.14);
+
+// ── TARSALS ────────────────────────────────────────────────────────────────
+// Calcaneus (heel)
+mkMesh('tarsals', boxG, -0.82,-13.7,-0.5, 0.1,0,-0.04, 0.72,0.5,1.1);
+mkMesh('tarsals', boxG,  0.82,-13.7,-0.5, 0.1,0, 0.04, 0.72,0.5,1.1);
+// Talus
+mkMesh('tarsals', sphG, -0.82,-13.3,0.3, 0,0,0, 0.35,0.3,0.4);
+mkMesh('tarsals', sphG,  0.82,-13.3,0.3, 0,0,0, 0.35,0.3,0.4);
+// Other tarsals
+[-0.3,-0.1,0.1,0.3,0.5].forEach((x,i)=>{
+  mkMesh('tarsals', boxG, -0.82+x*0.22,-13.4,0.55, 0,0,0, 0.2,0.24,0.28);
+  mkMesh('tarsals', boxG,  0.82+x*0.22,-13.4,0.55, 0,0,0, 0.2,0.24,0.28);
+});
+
+// ── METATARSALS ────────────────────────────────────────────────────────────
+[-0.3,-0.15,0,0.15,0.3].forEach((x,i)=>{
+  mkMesh('metatarsals', cylG, -0.82+x,-13.62,0.95, 1.5,0,0, 0.1,0.9,0.1);
+  mkMesh('metatarsals', cylG,  0.82+x,-13.62,0.95, 1.5,0,0, 0.1,0.9,0.1);
+});
+
+// ── TOE PHALANGES ──────────────────────────────────────────────────────────
+[-0.3,-0.15,0,0.15,0.3].forEach((x,i)=>{
+  mkMesh('phal_foot', cylG, -0.82+x,-13.62,1.45, 1.5,0,0, 0.09,0.36,0.09);
+  mkMesh('phal_foot', cylG, -0.82+x,-13.62,1.82, 1.5,0,0, 0.08,0.28,0.08);
+  if(i>0) mkMesh('phal_foot', cylG, -0.82+x,-13.62,2.1, 1.5,0,0, 0.07,0.22,0.07);
+  mkMesh('phal_foot', cylG,  0.82+x,-13.62,1.45, 1.5,0,0, 0.09,0.36,0.09);
+  mkMesh('phal_foot', cylG,  0.82+x,-13.62,1.82, 1.5,0,0, 0.08,0.28,0.08);
+  if(i>0) mkMesh('phal_foot', cylG,  0.82+x,-13.62,2.1, 1.5,0,0, 0.07,0.22,0.07);
+});
+
+// Center skeleton
+skeleton.position.set(0, 2.8, 0);
+
+// ── INTERACTION ─────────────────────────────────────────────────────────────
+const raycaster = new THREE.Raycaster();
+const mouse     = new THREE.Vector2();
+let hoveredMesh = null, selectedId = null;
+let isRotating = true, rotSpeed = 0.005;
+let isDragging = false, prevMX = 0, prevMY = 0;
+
+function updateMeshMat(mesh, type) {
+  const id = mesh.userData.boneId;
+  if (type === 'sel')   mesh.material = selMat.clone();
+  else if (type === 'hover') mesh.material = hoverMat.clone();
+  else                  mesh.material = boneMat.clone();
+}
+
+canvas.addEventListener('mousemove', e => {
+  const rect = canvas.getBoundingClientRect();
+  mouse.x = ((e.clientX - rect.left) / rect.width)  * 2 - 1;
+  mouse.y = -((e.clientY - rect.top)  / rect.height) * 2 + 1;
+
+  if (isDragging) {
+    const dx = e.clientX - prevMX;
+    const dy = e.clientY - prevMY;
+    skeleton.rotation.y += dx * 0.012;
+    skeleton.rotation.x += dy * 0.008;
+    skeleton.rotation.x = Math.max(-1.2, Math.min(1.2, skeleton.rotation.x));
+    prevMX = e.clientX; prevMY = e.clientY;
+    return;
+  }
+
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(meshes);
+  const tip  = document.getElementById('tip3d');
+
+  if (hits.length > 0) {
+    const m = hits[0].object;
+    if (m !== hoveredMesh) {
+      if (hoveredMesh && hoveredMesh.userData.boneId !== selectedId) updateMeshMat(hoveredMesh,'none');
+      hoveredMesh = m;
+      if (m.userData.boneId !== selectedId) updateMeshMat(m,'hover');
+    }
+    const id = m.userData.boneId;
+    if (BD[id]) { tip.textContent=BD[id].n; tip.style.display='block'; tip.style.left=(e.clientX+14)+'px'; tip.style.top=(e.clientY-10)+'px'; }
+    canvas.style.cursor='pointer';
+  } else {
+    if (hoveredMesh && hoveredMesh.userData.boneId !== selectedId) updateMeshMat(hoveredMesh,'none');
+    hoveredMesh = null;
+    tip.style.display='none';
+    canvas.style.cursor=isDragging?'grabbing':'grab';
+  }
+});
+
+canvas.addEventListener('mousedown', e => { isDragging=true; prevMX=e.clientX; prevMY=e.clientY; isRotating=false; canvas.style.cursor='grabbing'; });
+canvas.addEventListener('mouseup',   () => { isDragging=false; canvas.style.cursor='grab'; });
+canvas.addEventListener('mouseleave',() => { isDragging=false; document.getElementById('tip3d').style.display='none'; });
+
+canvas.addEventListener('click', e => {
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(meshes);
+  if (hits.length > 0) {
+    const id = hits[0].object.userData.boneId;
+    selectBone(id);
+  }
+});
+
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  camera.position.z = Math.max(6, Math.min(35, camera.position.z + e.deltaY * 0.03));
+}, {passive:false});
+
+// Touch
+let ptx=0,pty=0;
+canvas.addEventListener('touchstart', e=>{ isDragging=true; ptx=e.touches[0].clientX; pty=e.touches[0].clientY; isRotating=false; },{passive:true});
+canvas.addEventListener('touchmove',  e=>{ e.preventDefault(); const dx=e.touches[0].clientX-ptx,dy=e.touches[0].clientY-pty; skeleton.rotation.y+=dx*0.012; skeleton.rotation.x+=dy*0.008; ptx=e.touches[0].clientX; pty=e.touches[0].clientY; },{passive:false});
+canvas.addEventListener('touchend',   ()=>{ isDragging=false; });
+
+function selectBone(id) {
+  // Reset all
+  meshes.forEach(m => { if(m.userData.boneId!==id) updateMeshMat(m,'none'); });
+  // Highlight selected group
+  meshes.filter(m=>m.userData.boneId===id).forEach(m=>updateMeshMat(m,'sel'));
+  selectedId = id;
+  // Update sidebar
+  document.querySelectorAll('.bbone').forEach(b=>b.classList.toggle('sel',b.id==='sb_'+id));
+  // Show info
+  const b=BD[id];
+  document.getElementById('defaultInfo').style.display='none';
+  document.getElementById('boneInfo').style.display='block';
+  document.getElementById('iGrp').textContent  = b.g;
+  document.getElementById('iName').textContent = b.n;
+  document.getElementById('iLat').textContent  = b.lat;
+  document.getElementById('iDesc').textContent = b.d;
+  document.getElementById('iCnt').textContent  = b.c;
+  document.getElementById('iTyp').textContent  = b.t+' bone';
+  document.getElementById('iCond').textContent = b.cond;
+  document.getElementById('iTreat').textContent= b.treat;
+}
+
+function clearSel() {
+  selectedId=null;
+  meshes.forEach(m=>updateMeshMat(m,'none'));
+  document.querySelectorAll('.bbone').forEach(b=>b.classList.remove('sel'));
+  document.getElementById('boneInfo').style.display='none';
+  document.getElementById('defaultInfo').style.display='block';
+}
+
+function autoRotate() { isRotating=true; }
+function stopRotate()  { isRotating=false; }
+function resetCam()    { camera.position.set(0,0,18); skeleton.rotation.set(0,0,0); }
+function toggleLight() { ambientLight.intensity = ambientLight.intensity>0.4?0.2:0.6; }
+function zoomIn()  { camera.position.z=Math.max(6, camera.position.z-2); }
+function zoomOut() { camera.position.z=Math.min(35,camera.position.z+2); }
+
+// Resize
+function resize() {
+  const w=canvas.parentElement.clientWidth, h=window.innerHeight-140;
+  renderer.setSize(w,h);
+  camera.aspect=w/h;
+  camera.updateProjectionMatrix();
+}
+
+// Render loop
+function animate() {
+  requestAnimationFrame(animate);
+  if(isRotating && !isDragging) skeleton.rotation.y += rotSpeed;
+  renderer.render(scene, camera);
+}
+
+window.addEventListener('resize', resize);
+resize();
+animate();
+</script>
+{% endblock %}

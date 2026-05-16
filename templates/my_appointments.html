@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block title %}My Appointments — Sonavane Hospital{% endblock %}
+{% block content %}
+<div class="appt-page">
+  <div class="section-header reveal" style="margin-bottom:40px;">
+    <p class="section-tag">Your History</p>
+    <h1 class="section-title">My Appointments</h1>
+    <div class="section-line"></div>
+  </div>
+  {% if appointments %}
+  <div style="overflow-x:auto;">
+    <table class="appt-table">
+      <thead>
+        <tr>
+          <th>Doctor</th>
+          <th>Specialization</th>
+          <th>Date</th>
+          <th>Time</th>
+          <th>Problem</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in appointments %}
+        <tr>
+          <td>{{ a.doctor_name }}</td>
+          <td>{{ a.specialization }}</td>
+          <td>{{ a.date }}</td>
+          <td>{{ a.time_slot }}</td>
+          <td>{{ a.problem or '—' }}</td>
+          <td><span class="badge badge-{{ a.status }}">{{ a.status }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:80px 20px;color:var(--gray);">
+    <h3 style="font-family:var(--font-head);font-size:1.8rem;margin-bottom:12px;color:var(--white);">No appointments yet</h3>
+    <p style="margin-bottom:24px;">Book your first appointment with our specialist doctors.</p>
+    <a href="{{ url_for('book') }}" class="btn-primary">Book Now</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
